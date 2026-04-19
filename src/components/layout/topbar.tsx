@@ -29,7 +29,7 @@ export function Topbar() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
             </svg>
           </SheetTrigger>
-          <SheetContent side="left" className="w-64 bg-[#050505] border-white/[0.06] p-0">
+          <SheetContent side="left" className="w-64 border-white/[0.06] p-0 sidebar-galaxy">
             <div className="p-6">
               <Link href="/dashboard" className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg bg-purple-300/20 flex items-center justify-center">

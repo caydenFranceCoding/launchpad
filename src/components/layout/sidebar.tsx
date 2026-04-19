@@ -30,7 +30,7 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden md:flex flex-col w-64 border-r border-white/[0.06] bg-[#050505] h-screen sticky top-0">
+    <aside className="hidden md:flex flex-col w-64 border-r border-white/[0.06] h-screen sticky top-0 sidebar-galaxy">
       <div className="p-6">
         <Link href="/dashboard" className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-purple-300/20 flex items-center justify-center">
