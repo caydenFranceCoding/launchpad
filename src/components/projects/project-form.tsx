@@ -130,7 +130,7 @@ export function ProjectForm({ open, onOpenChange, project }: ProjectFormProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-zinc-950 border-white/10 max-w-lg">
+      <DialogContent className="bg-zinc-950 border-white/10 max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-white">{isEdit ? "Edit Project" : "New Project"}</DialogTitle>
         </DialogHeader>
