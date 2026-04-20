@@ -6,8 +6,11 @@ import { GalaxyBackground } from "@/components/galaxy-background";
 export default function LoginPage() {
   const handleSignIn = async () => {
     try {
-      const res = await signIn("github", { callbackUrl: "/dashboard", redirect: true });
-      console.log("signIn response:", res);
+      const res = await signIn("github", { callbackUrl: "/dashboard", redirect: false });
+      console.log("signIn response:", JSON.stringify(res));
+      if (res?.url) {
+        window.location.href = res.url;
+      }
     } catch (err) {
       console.error("signIn error:", err);
     }
