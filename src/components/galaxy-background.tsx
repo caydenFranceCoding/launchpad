@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef } from "react";
 
 interface Star {
   x: number;
@@ -9,7 +9,7 @@ interface Star {
   opacity: number;
   twinkleSpeed: number;
   twinkleOffset: number;
-  layer: number; // 0 = far, 1 = mid, 2 = near
+  layer: number;
   color: [number, number, number];
 }
 
@@ -33,247 +33,10 @@ interface Nebula {
   squash: number;
 }
 
-interface Particle {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  life: number;
-  maxLife: number;
-  size: number;
-  color: [number, number, number];
-}
-
 export function GalaxyBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const mouseRef = useRef({ x: -200, y: -200 });
-  const shipAngleRef = useRef(0);
-  const shipPosRef = useRef({ x: -200, y: -200 });
-  const shipVelRef = useRef({ x: 0, y: 0 });
+  const mouseRef = useRef({ x: 0.5, y: 0.5 });
   const animFrameRef = useRef<number>(0);
-  const particlesRef = useRef<Particle[]>([]);
-
-  const drawSpaceship = useCallback(
-    (ctx: CanvasRenderingContext2D, x: number, y: number, angle: number, speed: number, time: number) => {
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.rotate(angle);
-
-      const s = 1.6; // scale
-
-      // Shield aura (pulsing)
-      const shieldPulse = 0.3 + Math.sin(time * 3) * 0.15 + Math.sin(time * 7.3) * 0.05;
-      const shieldGrad = ctx.createRadialGradient(0, 0, 8 * s, 0, 0, 28 * s);
-      shieldGrad.addColorStop(0, `rgba(139, 92, 246, ${shieldPulse * 0.15})`);
-      shieldGrad.addColorStop(0.5, `rgba(99, 102, 241, ${shieldPulse * 0.08})`);
-      shieldGrad.addColorStop(1, "rgba(99, 102, 241, 0)");
-      ctx.fillStyle = shieldGrad;
-      ctx.beginPath();
-      ctx.ellipse(0, 2 * s, 26 * s, 30 * s, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Engine glow (dual engines)
-      const engineIntensity = 0.5 + Math.min(speed / 300, 0.5);
-      for (const ex of [-4.5 * s, 4.5 * s]) {
-        const eGlow = ctx.createRadialGradient(ex, 13 * s, 0, ex, 13 * s, 14 * s);
-        eGlow.addColorStop(0, `rgba(167, 139, 250, ${engineIntensity})`);
-        eGlow.addColorStop(0.3, `rgba(99, 102, 241, ${engineIntensity * 0.5})`);
-        eGlow.addColorStop(0.6, `rgba(59, 130, 246, ${engineIntensity * 0.2})`);
-        eGlow.addColorStop(1, "rgba(59, 130, 246, 0)");
-        ctx.fillStyle = eGlow;
-        ctx.beginPath();
-        ctx.arc(ex, 13 * s, 14 * s, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      // Engine flames (dual, flickering)
-      for (const ex of [-4.5 * s, 4.5 * s]) {
-        const flicker = 0.6 + Math.random() * 0.4;
-        const flameLen = (10 + speed * 0.04) * s * flicker;
-        const innerFlameLen = flameLen * 0.6;
-
-        // Outer flame
-        ctx.beginPath();
-        ctx.moveTo(ex - 3 * s, 10 * s);
-        ctx.quadraticCurveTo(ex - 1.5 * s, 10 * s + flameLen * 0.6, ex, 10 * s + flameLen);
-        ctx.quadraticCurveTo(ex + 1.5 * s, 10 * s + flameLen * 0.6, ex + 3 * s, 10 * s);
-        ctx.closePath();
-        const outerGrad = ctx.createLinearGradient(ex, 10 * s, ex, 10 * s + flameLen);
-        outerGrad.addColorStop(0, "rgba(167, 139, 250, 0.9)");
-        outerGrad.addColorStop(0.4, "rgba(96, 165, 250, 0.6)");
-        outerGrad.addColorStop(1, "rgba(59, 130, 246, 0)");
-        ctx.fillStyle = outerGrad;
-        ctx.fill();
-
-        // Inner flame (brighter core)
-        ctx.beginPath();
-        ctx.moveTo(ex - 1.5 * s, 10 * s);
-        ctx.quadraticCurveTo(ex - 0.5 * s, 10 * s + innerFlameLen * 0.6, ex, 10 * s + innerFlameLen);
-        ctx.quadraticCurveTo(ex + 0.5 * s, 10 * s + innerFlameLen * 0.6, ex + 1.5 * s, 10 * s);
-        ctx.closePath();
-        const innerGrad = ctx.createLinearGradient(ex, 10 * s, ex, 10 * s + innerFlameLen);
-        innerGrad.addColorStop(0, "rgba(224, 231, 255, 0.95)");
-        innerGrad.addColorStop(0.5, "rgba(199, 210, 254, 0.6)");
-        innerGrad.addColorStop(1, "rgba(167, 139, 250, 0)");
-        ctx.fillStyle = innerGrad;
-        ctx.fill();
-      }
-
-      // Main body shadow (depth)
-      ctx.beginPath();
-      ctx.moveTo(0, -16 * s);
-      ctx.lineTo(-10.5 * s, 10 * s);
-      ctx.lineTo(10.5 * s, 10 * s);
-      ctx.closePath();
-      ctx.fillStyle = "rgba(30, 15, 60, 0.5)";
-      ctx.fill();
-
-      // Main fuselage
-      ctx.beginPath();
-      ctx.moveTo(0, -16 * s);
-      ctx.lineTo(-3.5 * s, -10 * s);
-      ctx.lineTo(-5 * s, 0);
-      ctx.lineTo(-4 * s, 8 * s);
-      ctx.lineTo(-2 * s, 10 * s);
-      ctx.lineTo(2 * s, 10 * s);
-      ctx.lineTo(4 * s, 8 * s);
-      ctx.lineTo(5 * s, 0);
-      ctx.lineTo(3.5 * s, -10 * s);
-      ctx.closePath();
-      const fuselageGrad = ctx.createLinearGradient(-5 * s, 0, 5 * s, 0);
-      fuselageGrad.addColorStop(0, "#6d28d9");
-      fuselageGrad.addColorStop(0.3, "#a78bfa");
-      fuselageGrad.addColorStop(0.5, "#c4b5fd");
-      fuselageGrad.addColorStop(0.7, "#a78bfa");
-      fuselageGrad.addColorStop(1, "#6d28d9");
-      ctx.fillStyle = fuselageGrad;
-      ctx.fill();
-      ctx.strokeStyle = "rgba(221, 214, 254, 0.3)";
-      ctx.lineWidth = 0.5;
-      ctx.stroke();
-
-      // Left wing
-      ctx.beginPath();
-      ctx.moveTo(-3.5 * s, -4 * s);
-      ctx.lineTo(-12 * s, 6 * s);
-      ctx.lineTo(-10 * s, 10 * s);
-      ctx.lineTo(-7 * s, 10 * s);
-      ctx.lineTo(-5 * s, 4 * s);
-      ctx.closePath();
-      const lwGrad = ctx.createLinearGradient(-3.5 * s, -4 * s, -12 * s, 10 * s);
-      lwGrad.addColorStop(0, "#8b5cf6");
-      lwGrad.addColorStop(0.5, "#6d28d9");
-      lwGrad.addColorStop(1, "#4c1d95");
-      ctx.fillStyle = lwGrad;
-      ctx.fill();
-      ctx.strokeStyle = "rgba(196, 181, 253, 0.25)";
-      ctx.lineWidth = 0.5;
-      ctx.stroke();
-
-      // Right wing
-      ctx.beginPath();
-      ctx.moveTo(3.5 * s, -4 * s);
-      ctx.lineTo(12 * s, 6 * s);
-      ctx.lineTo(10 * s, 10 * s);
-      ctx.lineTo(7 * s, 10 * s);
-      ctx.lineTo(5 * s, 4 * s);
-      ctx.closePath();
-      const rwGrad = ctx.createLinearGradient(3.5 * s, -4 * s, 12 * s, 10 * s);
-      rwGrad.addColorStop(0, "#8b5cf6");
-      rwGrad.addColorStop(0.5, "#7c3aed");
-      rwGrad.addColorStop(1, "#5b21b6");
-      ctx.fillStyle = rwGrad;
-      ctx.fill();
-      ctx.strokeStyle = "rgba(196, 181, 253, 0.25)";
-      ctx.lineWidth = 0.5;
-      ctx.stroke();
-
-      // Panel line details on fuselage
-      ctx.strokeStyle = "rgba(139, 92, 246, 0.3)";
-      ctx.lineWidth = 0.4;
-      ctx.beginPath();
-      ctx.moveTo(0, -14 * s);
-      ctx.lineTo(0, 8 * s);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(-3 * s, -2 * s);
-      ctx.lineTo(3 * s, -2 * s);
-      ctx.stroke();
-
-      // Cockpit (glowing dome)
-      ctx.beginPath();
-      ctx.ellipse(0, -7 * s, 2.8 * s, 5 * s, 0, 0, Math.PI * 2);
-      const cockpitGrad = ctx.createRadialGradient(0.5 * s, -9 * s, 0, 0, -7 * s, 5 * s);
-      cockpitGrad.addColorStop(0, "rgba(224, 231, 255, 0.95)");
-      cockpitGrad.addColorStop(0.3, "rgba(165, 180, 252, 0.7)");
-      cockpitGrad.addColorStop(0.7, "rgba(99, 102, 241, 0.4)");
-      cockpitGrad.addColorStop(1, "rgba(67, 56, 202, 0.3)");
-      ctx.fillStyle = cockpitGrad;
-      ctx.fill();
-      ctx.strokeStyle = "rgba(199, 210, 254, 0.5)";
-      ctx.lineWidth = 0.6;
-      ctx.stroke();
-
-      // Cockpit highlight
-      ctx.beginPath();
-      ctx.ellipse(-0.5 * s, -9 * s, 1 * s, 2 * s, -0.3, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
-      ctx.fill();
-
-      // Wing-tip lights (blinking)
-      const blink = Math.sin(time * 8) > 0;
-      const blink2 = Math.sin(time * 8 + Math.PI) > 0;
-
-      // Left wing tip - red
-      if (blink) {
-        const ltGlow = ctx.createRadialGradient(-11 * s, 7 * s, 0, -11 * s, 7 * s, 6 * s);
-        ltGlow.addColorStop(0, "rgba(248, 113, 113, 0.9)");
-        ltGlow.addColorStop(0.3, "rgba(239, 68, 68, 0.4)");
-        ltGlow.addColorStop(1, "rgba(239, 68, 68, 0)");
-        ctx.fillStyle = ltGlow;
-        ctx.beginPath();
-        ctx.arc(-11 * s, 7 * s, 6 * s, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.beginPath();
-      ctx.arc(-11 * s, 7 * s, 1.2 * s, 0, Math.PI * 2);
-      ctx.fillStyle = blink ? "#fca5a5" : "#7f1d1d";
-      ctx.fill();
-
-      // Right wing tip - green
-      if (blink2) {
-        const rtGlow = ctx.createRadialGradient(11 * s, 7 * s, 0, 11 * s, 7 * s, 6 * s);
-        rtGlow.addColorStop(0, "rgba(74, 222, 128, 0.9)");
-        rtGlow.addColorStop(0.3, "rgba(34, 197, 94, 0.4)");
-        rtGlow.addColorStop(1, "rgba(34, 197, 94, 0)");
-        ctx.fillStyle = rtGlow;
-        ctx.beginPath();
-        ctx.arc(11 * s, 7 * s, 6 * s, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.beginPath();
-      ctx.arc(11 * s, 7 * s, 1.2 * s, 0, Math.PI * 2);
-      ctx.fillStyle = blink2 ? "#86efac" : "#14532d";
-      ctx.fill();
-
-      // Nose light
-      const nosePulse = 0.5 + Math.sin(time * 5) * 0.5;
-      const noseGlow = ctx.createRadialGradient(0, -15 * s, 0, 0, -15 * s, 5 * s);
-      noseGlow.addColorStop(0, `rgba(199, 210, 254, ${nosePulse * 0.8})`);
-      noseGlow.addColorStop(1, "rgba(199, 210, 254, 0)");
-      ctx.fillStyle = noseGlow;
-      ctx.beginPath();
-      ctx.arc(0, -15 * s, 5 * s, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(0, -15.5 * s, 0.8 * s, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(255, 255, 255, ${0.6 + nosePulse * 0.4})`;
-      ctx.fill();
-
-      ctx.restore();
-    },
-    []
-  );
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -446,19 +209,13 @@ export function GalaxyBackground() {
     };
 
     const handleMouse = (e: MouseEvent) => {
-      mouseRef.current = { x: e.clientX, y: e.clientY };
-    };
-
-    const handleMouseLeave = () => {
-      mouseRef.current = { x: -200, y: -200 };
+      mouseRef.current = { x: e.clientX / width, y: e.clientY / height };
     };
 
     window.addEventListener("resize", handleResize);
     window.addEventListener("mousemove", handleMouse);
-    document.addEventListener("mouseleave", handleMouseLeave);
 
     let frame = 0;
-    const particles = particlesRef.current;
 
     const animate = () => {
       frame++;
@@ -466,8 +223,8 @@ export function GalaxyBackground() {
       const time = frame * 0.01;
 
       // Parallax offset based on mouse position
-      const mx = (mouseRef.current.x / width - 0.5) * 2;
-      const my = (mouseRef.current.y / height - 0.5) * 2;
+      const mx = (mouseRef.current.x - 0.5) * 2;
+      const my = (mouseRef.current.y - 0.5) * 2;
 
       // Draw nebulae with rotation and squash
       for (const neb of nebulae) {
@@ -574,85 +331,6 @@ export function GalaxyBackground() {
         if (ss.life >= ss.maxLife) shootingStars.splice(i, 1);
       }
 
-      // Ship physics
-      const ship = shipPosRef.current;
-      const mouse = mouseRef.current;
-      const dx = mouse.x - ship.x;
-      const dy = mouse.y - ship.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-
-      // Spring-damper physics for smoother movement
-      const springK = 0.04;
-      const damping = 0.85;
-      shipVelRef.current.x = (shipVelRef.current.x + dx * springK) * damping;
-      shipVelRef.current.y = (shipVelRef.current.y + dy * springK) * damping;
-      ship.x += shipVelRef.current.x;
-      ship.y += shipVelRef.current.y;
-
-      const speed = Math.sqrt(shipVelRef.current.x ** 2 + shipVelRef.current.y ** 2);
-
-      // Smooth angle with banking feel
-      const targetAngle = Math.atan2(shipVelRef.current.x, -shipVelRef.current.y);
-      let angleDiff = targetAngle - shipAngleRef.current;
-      while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
-      while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
-      shipAngleRef.current += angleDiff * 0.1;
-
-      // Only draw if cursor is on the page
-      if (mouse.x > -100 && mouse.y > -100) {
-        // Emit engine particles
-        if (speed > 1) {
-          const sinA = Math.sin(shipAngleRef.current);
-          const cosA = Math.cos(shipAngleRef.current);
-          const emitCount = Math.min(Math.floor(speed / 3), 4);
-          for (let e = 0; e < emitCount; e++) {
-            for (const offset of [-4.5 * 1.6, 4.5 * 1.6]) {
-              const ex = ship.x + offset * cosA - sinA * 13 * 1.6 * (0.8 + Math.random() * 0.4);
-              const ey = ship.y + offset * sinA + cosA * 13 * 1.6 * (0.8 + Math.random() * 0.4);
-              const spread = (Math.random() - 0.5) * 2;
-              particles.push({
-                x: ex,
-                y: ey,
-                vx: -sinA * (1 + Math.random() * 2) + spread,
-                vy: cosA * (1 + Math.random() * 2) + spread,
-                life: 0,
-                maxLife: 25 + Math.random() * 20,
-                size: 1 + Math.random() * 2,
-                color: Math.random() > 0.5 ? [167, 139, 250] : [129, 140, 248],
-              });
-            }
-          }
-        }
-
-        // Update and draw particles
-        for (let i = particles.length - 1; i >= 0; i--) {
-          const p = particles[i];
-          p.x += p.vx;
-          p.y += p.vy;
-          p.vx *= 0.96;
-          p.vy *= 0.96;
-          p.life++;
-
-          const pAlpha = Math.max(0, 1 - p.life / p.maxLife);
-          const [pr, pg, pb] = p.color;
-
-          const pGrad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size * (1 + p.life * 0.05));
-          pGrad.addColorStop(0, `rgba(${pr}, ${pg}, ${pb}, ${pAlpha * 0.8})`);
-          pGrad.addColorStop(1, `rgba(${pr}, ${pg}, ${pb}, 0)`);
-          ctx.fillStyle = pGrad;
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, p.size * (1 + p.life * 0.05), 0, Math.PI * 2);
-          ctx.fill();
-
-          if (p.life >= p.maxLife) particles.splice(i, 1);
-        }
-
-        // Cap particles
-        while (particles.length > 300) particles.shift();
-
-        drawSpaceship(ctx, ship.x, ship.y, shipAngleRef.current, speed, time);
-      }
-
       animFrameRef.current = requestAnimationFrame(animate);
     };
 
@@ -662,15 +340,14 @@ export function GalaxyBackground() {
       cancelAnimationFrame(animFrameRef.current);
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("mousemove", handleMouse);
-      document.removeEventListener("mouseleave", handleMouseLeave);
     };
-  }, [drawSpaceship]);
+  }, []);
 
   return (
     <canvas
       ref={canvasRef}
       className="fixed inset-0 pointer-events-none"
-      style={{ zIndex: 0, cursor: "none" }}
+      style={{ zIndex: 0 }}
     />
   );
 }
