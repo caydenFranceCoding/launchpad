@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { getToken } from "next-auth/jwt";
 
-export async function proxy(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Allow auth API routes through (NextAuth needs these)
@@ -10,18 +9,21 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const token = await getToken({ req: request });
+  // Check for session cookie (database strategy, not JWT)
+  const sessionToken =
+    request.cookies.get("__Secure-next-auth.session-token")?.value ??
+    request.cookies.get("next-auth.session-token")?.value;
 
   // Protect API routes — return 401 instead of redirect
   if (pathname.startsWith("/api/")) {
-    if (!token) {
+    if (!sessionToken) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     return NextResponse.next();
   }
 
   // Protect app routes — redirect to login
-  if (!token) {
+  if (!sessionToken) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);
