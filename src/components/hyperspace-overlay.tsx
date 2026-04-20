@@ -18,7 +18,7 @@ interface HyperspaceOverlayProps {
 export function HyperspaceOverlay({ active, onComplete }: HyperspaceOverlayProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animFrameRef = useRef<number>(0);
-  const phaseRef = useRef<"idle" | "accelerate" | "cruise" | "flash">("idle");
+  const phaseRef = useRef<"idle" | "accelerate" | "cruise" | "blueshift" | "hold">("idle");
   const progressRef = useRef(0);
   const starsRef = useRef<HyperStar[]>([]);
   const completedRef = useRef(false);
@@ -98,14 +98,18 @@ export function HyperspaceOverlay({ active, onComplete }: HyperspaceOverlayProps
       } else if (phase === "cruise") {
         progressRef.current = Math.min(progressRef.current + 0.012, 1);
         if (progressRef.current >= 1) {
-          phaseRef.current = "flash";
+          phaseRef.current = "blueshift";
           progressRef.current = 0;
         }
-      } else if (phase === "flash") {
-        progressRef.current = Math.min(progressRef.current + 0.025, 1);
-        if (progressRef.current >= 1 && !completedRef.current) {
-          completedRef.current = true;
-          onComplete?.();
+      } else if (phase === "blueshift") {
+        progressRef.current = Math.min(progressRef.current + 0.018, 1);
+        if (progressRef.current >= 1) {
+          phaseRef.current = "hold";
+          progressRef.current = 0;
+          if (!completedRef.current) {
+            completedRef.current = true;
+            onComplete?.();
+          }
         }
       }
 
@@ -209,19 +213,38 @@ export function HyperspaceOverlay({ active, onComplete }: HyperspaceOverlayProps
         ctx.fill();
       }
 
-      // Flash overlay at the end
-      if (phaseRef.current === "flash") {
-        const flashAlpha = progressRef.current * progressRef.current;
-        ctx.fillStyle = `rgba(255, 255, 255, ${flashAlpha})`;
+      // Blue saturation at the end — stars dissolve into pure blue tunnel
+      if (phaseRef.current === "blueshift") {
+        const p = progressRef.current;
+        const easeIn = p * p;
+        // Layered blue glow fills the screen
+        const blueGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(width, height) * 0.6);
+        blueGrad.addColorStop(0, `rgba(80, 140, 255, ${easeIn * 0.9})`);
+        blueGrad.addColorStop(0.4, `rgba(40, 80, 200, ${easeIn * 0.85})`);
+        blueGrad.addColorStop(0.7, `rgba(15, 30, 120, ${easeIn * 0.8})`);
+        blueGrad.addColorStop(1, `rgba(5, 10, 40, ${easeIn * 0.95})`);
+        ctx.fillStyle = blueGrad;
+        ctx.fillRect(0, 0, width, height);
+      } else if (phaseRef.current === "hold") {
+        // Solid deep blue — holds while redirect happens
+        const holdGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(width, height) * 0.6);
+        holdGrad.addColorStop(0, "rgba(80, 140, 255, 0.9)");
+        holdGrad.addColorStop(0.4, "rgba(40, 80, 200, 0.85)");
+        holdGrad.addColorStop(0.7, "rgba(15, 30, 120, 0.8)");
+        holdGrad.addColorStop(1, "rgba(5, 10, 40, 0.95)");
+        ctx.fillStyle = holdGrad;
         ctx.fillRect(0, 0, width, height);
       }
 
-      // Screen shake during acceleration
+      // Screen shake during acceleration, fading out during blueshift
       if (phaseRef.current === "accelerate" && eased > 0.3) {
         const shakeIntensity = eased * 2;
         canvas.style.transform = `translate(${(Math.random() - 0.5) * shakeIntensity}px, ${(Math.random() - 0.5) * shakeIntensity}px)`;
       } else if (phaseRef.current === "cruise") {
         const shakeIntensity = 1.5 + progressRef.current;
+        canvas.style.transform = `translate(${(Math.random() - 0.5) * shakeIntensity}px, ${(Math.random() - 0.5) * shakeIntensity}px)`;
+      } else if (phaseRef.current === "blueshift") {
+        const shakeIntensity = (1 - progressRef.current) * 2;
         canvas.style.transform = `translate(${(Math.random() - 0.5) * shakeIntensity}px, ${(Math.random() - 0.5) * shakeIntensity}px)`;
       } else {
         canvas.style.transform = "translate(0, 0)";

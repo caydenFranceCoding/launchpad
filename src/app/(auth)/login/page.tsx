@@ -25,6 +25,7 @@ export default function LoginPage() {
 
   const handleHyperspaceComplete = () => {
     if (redirectUrlRef.current) {
+      sessionStorage.setItem("hyperspace-arrival", "1");
       window.location.href = redirectUrlRef.current;
     }
   };
