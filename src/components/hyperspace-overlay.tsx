@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 
 interface HyperStar {
   x: number;
@@ -264,13 +264,29 @@ export function HyperspaceOverlay({ active, onComplete }: HyperspaceOverlayProps
     };
   }, [active, initStars, onComplete]);
 
+  // Fade-in: start transparent, transition to opaque
+  const [opacity, setOpacity] = useState(0);
+  useEffect(() => {
+    if (active) {
+      // Trigger fade-in on next frame so the transition fires
+      const raf = requestAnimationFrame(() => setOpacity(1));
+      return () => cancelAnimationFrame(raf);
+    } else {
+      setOpacity(0);
+    }
+  }, [active]);
+
   if (!active) return null;
 
   return (
     <canvas
       ref={canvasRef}
       className="fixed inset-0"
-      style={{ zIndex: 50 }}
+      style={{
+        zIndex: 50,
+        opacity,
+        transition: "opacity 0.6s ease-in",
+      }}
     />
   );
 }

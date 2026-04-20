@@ -1,21 +1,33 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 export function HyperspaceArrival() {
-  const [visible, setVisible] = useState(false);
+  // Always render the overlay initially so it's in the DOM before first paint.
+  // useLayoutEffect runs synchronously before the browser paints, so we can
+  // remove it without any flash if the sessionStorage flag isn't set.
+  const [visible, setVisible] = useState(true);
+  const checkedRef = useRef(false);
 
-  useEffect(() => {
-    // Check if we just came from the hyperspace login transition
+  useLayoutEffect(() => {
+    if (checkedRef.current) return;
+    checkedRef.current = true;
+
     const arrived = sessionStorage.getItem("hyperspace-arrival");
-    if (arrived) {
+    if (!arrived) {
+      // No flag — hide immediately before paint
+      setVisible(false);
+    } else {
       sessionStorage.removeItem("hyperspace-arrival");
-      setVisible(true);
-      // Fade out over 1.2s then unmount
-      const timer = setTimeout(() => setVisible(false), 1400);
-      return () => clearTimeout(timer);
     }
   }, []);
+
+  useEffect(() => {
+    if (!visible) return;
+    // Unmount after the fade-out animation completes
+    const timer = setTimeout(() => setVisible(false), 1600);
+    return () => clearTimeout(timer);
+  }, [visible]);
 
   if (!visible) return null;
 
@@ -24,14 +36,15 @@ export function HyperspaceArrival() {
       className="fixed inset-0 pointer-events-none"
       style={{
         zIndex: 100,
-        background: "radial-gradient(ellipse at center, rgba(80,140,255,0.9) 0%, rgba(40,80,200,0.85) 30%, rgba(15,30,120,0.8) 60%, rgba(5,10,40,0.95) 100%)",
-        animation: "hyperspace-fade-out 1.4s ease-in forwards",
+        background:
+          "radial-gradient(ellipse at center, rgba(80,140,255,0.9) 0%, rgba(40,80,200,0.85) 30%, rgba(15,30,120,0.8) 60%, rgba(5,10,40,0.95) 100%)",
+        animation: "hyperspace-fade-out 1.5s ease-in forwards",
       }}
     >
       <style>{`
         @keyframes hyperspace-fade-out {
           0% { opacity: 1; }
-          20% { opacity: 0.9; }
+          30% { opacity: 0.85; }
           100% { opacity: 0; }
         }
       `}</style>
