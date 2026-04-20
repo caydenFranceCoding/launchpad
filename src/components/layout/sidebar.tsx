@@ -30,7 +30,7 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden md:flex flex-col w-64 border-r border-white/[0.06] h-screen sticky top-0 sidebar-galaxy">
+    <aside className="hidden md:flex flex-col w-64 border-r border-border h-screen sticky top-0 sidebar-galaxy">
       <div className="p-6">
         <Link href="/dashboard" className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-purple-300/20 flex items-center justify-center">
@@ -48,7 +48,7 @@ export function Sidebar() {
               />
             </svg>
           </div>
-          <span className="text-lg font-semibold text-white">Launchpad</span>
+          <span className="text-lg font-semibold text-foreground">Launchpad</span>
         </Link>
       </div>
 
@@ -62,8 +62,8 @@ export function Sidebar() {
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
                 isActive
-                  ? "bg-purple-300/10 text-purple-300"
-                  : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
               )}
             >
               {item.icon}

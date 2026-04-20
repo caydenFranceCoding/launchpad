@@ -4,7 +4,7 @@ import { HyperspaceArrival } from "@/components/hyperspace-arrival";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="h-screen bg-black starfield">
+    <div className="h-screen bg-background starfield">
       <HyperspaceArrival>
         <Sidebar />
         <div className="flex-1 flex flex-col overflow-hidden">

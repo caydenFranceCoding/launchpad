@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ProjectCard } from "@/components/projects/project-card";
 import { ProjectForm } from "@/components/projects/project-form";
 import { EmptyState } from "@/components/shared/empty-state";
 import { NotificationPanel } from "@/components/notifications/notification-panel";
 import { Button } from "@/components/ui/button";
+import { useSettings } from "@/components/settings-provider";
 import { cn } from "@/lib/utils";
 
 interface ProjectSummary {
@@ -33,6 +34,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("ALL");
   const [showForm, setShowForm] = useState(false);
+  const { settings } = useSettings();
 
   useEffect(() => {
     fetch("/api/projects")
@@ -44,6 +46,21 @@ export default function DashboardPage() {
   }, []);
 
   const filtered = filter === "ALL" ? projects : projects.filter((p) => p.status === filter);
+
+  const sorted = useMemo(() => {
+    const list = [...filtered];
+    switch (settings.defaultSortOrder) {
+      case "name":
+        return list.sort((a, b) => a.name.localeCompare(b.name));
+      case "status":
+        return list.sort((a, b) => a.status.localeCompare(b.status));
+      case "progress":
+        return list.sort((a, b) => b.progress - a.progress);
+      case "updatedAt":
+      default:
+        return list.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+    }
+  }, [filtered, settings.defaultSortOrder]);
 
   const stats = {
     total: projects.length,
@@ -72,10 +89,12 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-          <p className="text-sm text-zinc-500 mt-1">
-            {stats.total} projects &middot; {stats.active} active &middot; {stats.shipped} shipped
-          </p>
+          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+          {settings.showProjectStats && (
+            <p className="text-sm text-muted-foreground mt-1">
+              {stats.total} projects &middot; {stats.active} active &middot; {stats.shipped} shipped
+            </p>
+          )}
         </div>
         <Button onClick={() => setShowForm(true)} className="bg-purple-300 text-black hover:bg-purple-200 font-medium">
           <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -86,7 +105,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Notifications */}
-      {projects.length > 0 && <NotificationPanel />}
+      {settings.showNotificationPanel && projects.length > 0 && <NotificationPanel />}
 
       {/* Filters */}
       {projects.length > 0 && (
@@ -109,9 +128,9 @@ export default function DashboardPage() {
       )}
 
       {/* Project grid */}
-      {filtered.length > 0 ? (
+      {sorted.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((project) => (
+          {sorted.map((project) => (
             <ProjectCard key={project.id} project={project} />
           ))}
         </div>

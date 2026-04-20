@@ -51,7 +51,44 @@
   --color-purple-muted: #c4b5fd33;
 }
 
+/* Light mode (default) */
 :root {
+  --background: #fafafa;
+  --foreground: #0a0a0a;
+  --card: #ffffff;
+  --card-foreground: #0a0a0a;
+  --popover: #ffffff;
+  --popover-foreground: #0a0a0a;
+  --primary: #c4b5fd;
+  --primary-foreground: #0a0a0a;
+  --secondary: #f4f4f5;
+  --secondary-foreground: #18181b;
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+  --accent: #f4f4f5;
+  --accent-foreground: #18181b;
+  --destructive: #ef4444;
+  --border: #e4e4e7;
+  --input: #e4e4e7;
+  --ring: #c4b5fd;
+  --chart-1: #c4b5fd;
+  --chart-2: #a78bfa;
+  --chart-3: #8b5cf6;
+  --chart-4: #7c3aed;
+  --chart-5: #6d28d9;
+  --radius: 0.75rem;
+  --sidebar: #f8f8f8;
+  --sidebar-foreground: #0a0a0a;
+  --sidebar-primary: #c4b5fd;
+  --sidebar-primary-foreground: #0a0a0a;
+  --sidebar-accent: #f4f4f5;
+  --sidebar-accent-foreground: #18181b;
+  --sidebar-border: #e4e4e7;
+  --sidebar-ring: #c4b5fd;
+}
+
+/* Dark mode */
+.dark {
   --background: #000000;
   --foreground: #f0f0f0;
   --card: #111111;
@@ -75,7 +112,6 @@
   --chart-3: #8b5cf6;
   --chart-4: #7c3aed;
   --chart-5: #6d28d9;
-  --radius: 0.75rem;
   --sidebar: #080808;
   --sidebar-foreground: #f0f0f0;
   --sidebar-primary: #c4b5fd;
@@ -88,6 +124,11 @@
 
 .sidebar-galaxy {
   position: relative;
+  background: var(--sidebar);
+  overflow: hidden;
+}
+
+.dark .sidebar-galaxy {
   background: linear-gradient(
     180deg,
     #05001a 0%,
@@ -96,10 +137,9 @@
     #06000f 75%,
     #020008 100%
   );
-  overflow: hidden;
 }
 
-.sidebar-galaxy::before {
+.dark .sidebar-galaxy::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -126,7 +166,7 @@
   z-index: 0;
 }
 
-.sidebar-galaxy::after {
+.dark .sidebar-galaxy::after {
   content: "";
   position: absolute;
   top: 30%;
@@ -152,7 +192,7 @@
   position: relative;
 }
 
-.starfield::before {
+.dark .starfield::before {
   content: "";
   position: fixed;
   inset: 0;
