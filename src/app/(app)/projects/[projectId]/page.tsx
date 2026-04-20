@@ -212,7 +212,7 @@ export default function ProjectDetailPage() {
             <TabsTrigger
               key={tab}
               value={tab}
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-purple-300 data-[state=active]:text-purple-300 data-[state=active]:bg-transparent text-zinc-500 hover:text-zinc-300 px-4 py-2.5 text-sm font-medium capitalize"
+              className="flex-1 sm:flex-none rounded-none border-b-2 border-transparent data-[state=active]:border-purple-300 data-[state=active]:text-purple-300 data-[state=active]:bg-transparent text-zinc-500 hover:text-zinc-300 px-3 sm:px-4 py-2.5 text-sm font-medium capitalize"
             >
               {tab === "github" ? "GitHub" : tab.charAt(0).toUpperCase() + tab.slice(1)}
             </TabsTrigger>
