@@ -1,62 +1,66 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 export function HyperspaceArrival({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  // "idle" = no hyperspace arrival, render normally
-  // "covering" = overlay at full opacity, content hidden
-  // "revealing" = overlay fading out, content fading in
-  // "done" = overlay removed, content fully visible
+  // Start "covering" so the overlay is in the initial SSR HTML.
+  // useLayoutEffect checks the flag and switches to "idle" before
+  // the browser ever paints — no flash on normal page loads.
   const [phase, setPhase] = useState<
     "idle" | "covering" | "revealing" | "done"
-  >("idle");
+  >("covering");
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-  useEffect(() => {
+  // Runs synchronously before the browser paints after hydration
+  useLayoutEffect(() => {
     const arrived = sessionStorage.getItem("hyperspace-arrival");
     if (!arrived) {
+      // No hyperspace flag — drop the overlay before paint
       setPhase("idle");
       return;
     }
 
+    // Flag found — keep the blue overlay, then start the reveal
     sessionStorage.removeItem("hyperspace-arrival");
-    setPhase("covering");
-
-    // Brief hold at full blue, then start revealing
+    // Stay "covering" briefly, then transition
     timerRef.current = setTimeout(() => {
       setPhase("revealing");
-      // Clean up after transition finishes
-      timerRef.current = setTimeout(() => setPhase("done"), 2000);
-    }, 100);
+    }, 150);
 
     return () => clearTimeout(timerRef.current);
   }, []);
 
+  // Unmount overlay after fade-out transition completes
+  useEffect(() => {
+    if (phase !== "revealing") return;
+    timerRef.current = setTimeout(() => setPhase("done"), 2000);
+    return () => clearTimeout(timerRef.current);
+  }, [phase]);
+
   const showOverlay = phase === "covering" || phase === "revealing";
-  const needsTransition = phase === "covering" || phase === "revealing";
 
   return (
     <>
-      {/* Dashboard content — fades in during reveal */}
+      {/* Dashboard content — hidden during cover, fades in during reveal */}
       <div
         className="flex h-screen w-full"
         style={
-          needsTransition
-            ? {
+          phase === "idle" || phase === "done"
+            ? undefined
+            : {
                 opacity: phase === "revealing" ? 1 : 0,
                 transition: "opacity 1.6s ease-out",
               }
-            : undefined
         }
       >
         {children}
       </div>
 
-      {/* Blue overlay — fades out during reveal */}
+      {/* Blue overlay — matches the hyperspace hold color */}
       {showOverlay && (
         <div
           className="fixed inset-0 pointer-events-none"
