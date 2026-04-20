@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import type { ActivityType } from "@/generated/prisma";
+import type { ActivityType } from "@/generated/prisma/client";
+import type { Prisma } from "@/generated/prisma/client";
 
 export async function logActivity(
   projectId: string,
@@ -12,7 +13,7 @@ export async function logActivity(
       projectId,
       type,
       message,
-      metadata: metadata ?? undefined,
+      metadata: (metadata ?? undefined) as Prisma.InputJsonValue | undefined,
     },
   });
 }
