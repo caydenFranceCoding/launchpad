@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/empty-state";
+import { CommitHistory, type CommitData } from "./commit-history";
 import {
   BarChart,
   Bar,
@@ -23,6 +24,7 @@ interface GitHubCacheData {
   forks: number;
   commitActivity: Array<{ week: string; count: number }> | null;
   languages: Record<string, number> | null;
+  commits?: CommitData[];
   syncedAt: string;
 }
 
@@ -162,6 +164,19 @@ export function GitHubSection({ projectId, repoUrl, repoOwner, repoName, initial
                 </div>
               ))}
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Commit History */}
+      {repoOwner && repoName && (
+        <Card className="bg-zinc-950/50 border-white/[0.06]">
+          <CardContent className="pt-5">
+            <CommitHistory
+              commits={cache?.commits ?? []}
+              repoOwner={repoOwner}
+              repoName={repoName}
+            />
           </CardContent>
         </Card>
       )}

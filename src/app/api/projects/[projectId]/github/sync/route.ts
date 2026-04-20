@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
-import { createGitHubClient, fetchRepoStats } from "@/lib/github";
+import { createGitHubClient, fetchRepoStats, fetchRecentCommits } from "@/lib/github";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request, { params }: { params: Promise<{ projectId: string }> }) {
@@ -34,7 +34,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ project
   }
 
   const octokit = createGitHubClient(session.accessToken);
-  const stats = await fetchRepoStats(octokit, project.repoOwner, project.repoName);
+  const [stats, commits] = await Promise.all([
+    fetchRepoStats(octokit, project.repoOwner, project.repoName),
+    fetchRecentCommits(octokit, project.repoOwner, project.repoName),
+  ]);
 
   const data = {
     ...stats,
@@ -49,5 +52,23 @@ export async function POST(req: Request, { params }: { params: Promise<{ project
     create: { ...data, projectId },
   });
 
-  return NextResponse.json(cache);
+  // Upsert commits
+  if (commits.length > 0) {
+    await Promise.all(
+      commits.map((c) =>
+        prisma.gitHubCommit.upsert({
+          where: { cacheId_sha: { cacheId: cache.id, sha: c.sha } },
+          update: { message: c.message, authorName: c.authorName, authorAvatar: c.authorAvatar, authorLogin: c.authorLogin, additions: c.additions, deletions: c.deletions, filesChanged: c.filesChanged },
+          create: { ...c, cacheId: cache.id },
+        })
+      )
+    );
+  }
+
+  const result = await prisma.gitHubCache.findUnique({
+    where: { projectId },
+    include: { commits: { orderBy: { committedAt: "desc" }, take: 50 } },
+  });
+
+  return NextResponse.json(result);
 }

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { ProjectCard } from "@/components/projects/project-card";
 import { ProjectForm } from "@/components/projects/project-form";
 import { EmptyState } from "@/components/shared/empty-state";
+import { NotificationPanel } from "@/components/notifications/notification-panel";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -83,6 +84,9 @@ export default function DashboardPage() {
           New Project
         </Button>
       </div>
+
+      {/* Notifications */}
+      {projects.length > 0 && <NotificationPanel />}
 
       {/* Filters */}
       {projects.length > 0 && (

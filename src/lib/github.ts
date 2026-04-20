@@ -56,3 +56,22 @@ export async function fetchRepoStats(octokit: Octokit, owner: string, repo: stri
     languages: langs,
   };
 }
+
+export async function fetchRecentCommits(octokit: Octokit, owner: string, repo: string, perPage = 50) {
+  try {
+    const { data } = await octokit.repos.listCommits({ owner, repo, per_page: perPage });
+    return data.map((c) => ({
+      sha: c.sha,
+      message: c.commit.message,
+      authorName: c.commit.author?.name ?? c.author?.login ?? "Unknown",
+      authorAvatar: c.author?.avatar_url ?? null,
+      authorLogin: c.author?.login ?? null,
+      committedAt: new Date(c.commit.author?.date ?? c.commit.committer?.date ?? Date.now()),
+      additions: (c.stats?.additions) ?? 0,
+      deletions: (c.stats?.deletions) ?? 0,
+      filesChanged: c.files?.length ?? 0,
+    }));
+  } catch {
+    return [];
+  }
+}

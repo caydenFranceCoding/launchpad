@@ -25,6 +25,7 @@ export const taskCreateSchema = z.object({
 
 export const taskUpdateSchema = taskCreateSchema.partial().extend({
   sortOrder: z.number().optional(),
+  milestoneId: z.string().nullable().optional(),
 });
 
 export const metricCreateSchema = z.object({
@@ -38,4 +39,14 @@ export const metricUpdateSchema = metricCreateSchema.partial();
 export const datapointCreateSchema = z.object({
   value: z.number(),
   date: z.string().datetime(),
+});
+
+export const milestoneCreateSchema = z.object({
+  title: z.string().min(1).max(200),
+  description: z.string().max(2000).optional(),
+  targetDate: z.string().datetime().optional().nullable(),
+});
+
+export const milestoneUpdateSchema = milestoneCreateSchema.partial().extend({
+  completedAt: z.string().datetime().optional().nullable(),
 });

@@ -242,6 +242,28 @@ model GitHubCache {
   projectId String  @unique
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
+  commits   GitHubCommit[]
+
   syncedAt  DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model GitHubCommit {
+  id             String   @id @default(cuid())
+  sha            String
+  message        String   @db.Text
+  authorName     String
+  authorAvatar   String?
+  authorLogin    String?
+  committedAt    DateTime
+  additions      Int      @default(0)
+  deletions      Int      @default(0)
+  filesChanged   Int      @default(0)
+
+  cacheId String
+  cache   GitHubCache @relation(fields: [cacheId], references: [id], onDelete: Cascade)
+
+  @@unique([cacheId, sha])
+  @@index([cacheId])
+  @@index([committedAt])
 }

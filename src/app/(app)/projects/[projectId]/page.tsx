@@ -9,6 +9,8 @@ import { ProjectForm } from "@/components/projects/project-form";
 import { TaskList } from "@/components/tasks/task-list";
 import { MetricSection } from "@/components/metrics/metric-section";
 import { GitHubSection } from "@/components/github/github-section";
+import { MilestoneSection } from "@/components/milestones/milestone-section";
+import { ActivityTimeline } from "@/components/activity/activity-timeline";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { StatusBadge } from "@/components/projects/status-badge";
 import {
@@ -43,6 +45,35 @@ interface MetricData {
   datapoints: DatapointData[];
 }
 
+interface MilestoneData {
+  id: string;
+  title: string;
+  description: string | null;
+  targetDate: string | null;
+  completedAt: string | null;
+  tasks: { id: string; title: string; status: string }[];
+}
+
+interface ActivityData {
+  id: string;
+  type: string;
+  message: string;
+  createdAt: string;
+}
+
+interface GitHubCommitData {
+  id: string;
+  sha: string;
+  message: string;
+  authorName: string;
+  authorAvatar: string | null;
+  authorLogin: string | null;
+  committedAt: string;
+  additions: number;
+  deletions: number;
+  filesChanged: number;
+}
+
 interface GitHubCacheData {
   commitCount: number;
   openIssues: number;
@@ -53,6 +84,7 @@ interface GitHubCacheData {
   forks: number;
   commitActivity: Array<{ week: string; count: number }> | null;
   languages: Record<string, number> | null;
+  commits?: GitHubCommitData[];
   syncedAt: string;
 }
 
@@ -69,6 +101,8 @@ interface ProjectData {
   color: string | null;
   tasks: TaskData[];
   metrics: MetricData[];
+  milestones: MilestoneData[];
+  activities: ActivityData[];
   githubCache: GitHubCacheData | null;
 }
 
@@ -145,6 +179,8 @@ export default function ProjectDetailPage() {
 
   const tasks = project.tasks ?? [];
   const metrics = project.metrics ?? [];
+  const milestones = project.milestones ?? [];
+  const activities = project.activities ?? [];
   const tasksDone = tasks.filter((t) => t.status === "DONE").length;
   const tasksInProgress = tasks.filter((t) => t.status === "IN_PROGRESS").length;
   const projectColor = project.color ?? "#c4b5fd";
@@ -275,13 +311,19 @@ export default function ProjectDetailPage() {
       <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
         <Tabs defaultValue="tasks">
           <TabsList className="bg-transparent border-b border-white/[0.06] rounded-none w-full justify-start gap-0 h-auto p-0 px-2">
-            {["tasks", "metrics", "github"].map((tab) => (
+            {[
+              { value: "tasks", label: `Tasks (${tasks.length})` },
+              { value: "milestones", label: `Milestones (${milestones.length})` },
+              { value: "metrics", label: `Metrics (${metrics.length})` },
+              { value: "activity", label: "Activity" },
+              { value: "github", label: "GitHub" },
+            ].map((tab) => (
               <TabsTrigger
-                key={tab}
-                value={tab}
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-purple-300 data-[state=active]:text-purple-300 data-[state=active]:bg-transparent text-zinc-500 hover:text-zinc-300 px-4 py-3 text-sm font-medium capitalize"
+                key={tab.value}
+                value={tab.value}
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-purple-300 data-[state=active]:text-purple-300 data-[state=active]:bg-transparent text-zinc-500 hover:text-zinc-300 px-4 py-3 text-sm font-medium"
               >
-                {tab === "github" ? "GitHub" : tab === "tasks" ? `Tasks (${tasks.length})` : `Metrics (${metrics.length})`}
+                {tab.label}
               </TabsTrigger>
             ))}
           </TabsList>
@@ -291,8 +333,16 @@ export default function ProjectDetailPage() {
               <TaskList projectId={projectId} initialTasks={tasks} />
             </TabsContent>
 
+            <TabsContent value="milestones" className="mt-0">
+              <MilestoneSection projectId={projectId} initialMilestones={milestones} />
+            </TabsContent>
+
             <TabsContent value="metrics" className="mt-0">
               <MetricSection projectId={projectId} initialMetrics={metrics} />
+            </TabsContent>
+
+            <TabsContent value="activity" className="mt-0">
+              <ActivityTimeline activities={activities} />
             </TabsContent>
 
             <TabsContent value="github" className="mt-0">

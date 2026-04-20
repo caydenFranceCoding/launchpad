@@ -16,7 +16,14 @@ export async function GET(req: Request, { params }: { params: Promise<{ projectI
     include: {
       tasks: { orderBy: { sortOrder: "asc" } },
       metrics: { include: { datapoints: { orderBy: { date: "desc" }, take: 30 } } },
-      githubCache: true,
+      milestones: {
+        include: { tasks: { select: { id: true, status: true, title: true } } },
+        orderBy: [{ targetDate: "asc" }, { createdAt: "asc" }],
+      },
+      activities: { orderBy: { createdAt: "desc" }, take: 30 },
+      githubCache: {
+        include: { commits: { orderBy: { committedAt: "desc" }, take: 50 } },
+      },
     },
   });
 
