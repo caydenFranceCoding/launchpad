@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +20,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+
+interface GitHubRepo {
+  fullName: string;
+  name: string;
+  owner: string;
+  url: string;
+  description: string | null;
+  private: boolean;
+  updatedAt: string;
+}
 
 const statuses = [
   { value: "IDEA", label: "Idea" },
@@ -51,6 +62,7 @@ interface ProjectFormProps {
 
 export function ProjectForm({ open, onOpenChange, project }: ProjectFormProps) {
   const router = useRouter();
+  const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState(project?.name ?? "");
   const [description, setDescription] = useState(project?.description ?? "");
@@ -59,7 +71,40 @@ export function ProjectForm({ open, onOpenChange, project }: ProjectFormProps) {
   const [repoUrl, setRepoUrl] = useState(project?.repoUrl ?? "");
   const [color, setColor] = useState(project?.color ?? "#c4b5fd");
 
+  const [repos, setRepos] = useState<GitHubRepo[]>([]);
+  const [reposLoading, setReposLoading] = useState(false);
+  const [reposFetched, setReposFetched] = useState(false);
+  const [repoSearch, setRepoSearch] = useState("");
+
   const isEdit = !!project;
+  const hasGitHub = !!session?.accessToken;
+
+  useEffect(() => {
+    if (open && hasGitHub && !isEdit && !reposFetched) {
+      setReposLoading(true);
+      fetch("/api/github/repos")
+        .then((res) => (res.ok ? res.json() : []))
+        .then((data: GitHubRepo[]) => {
+          setRepos(data);
+          setReposFetched(true);
+        })
+        .catch(() => setRepos([]))
+        .finally(() => setReposLoading(false));
+    }
+  }, [open, hasGitHub, isEdit, reposFetched]);
+
+  function selectRepo(repo: GitHubRepo) {
+    setRepoUrl(repo.url);
+    if (!name.trim()) setName(repo.name);
+    if (!description && repo.description) setDescription(repo.description);
+    setRepoSearch("");
+  }
+
+  const filteredRepos = repoSearch
+    ? repos.filter((r) =>
+        r.fullName.toLowerCase().includes(repoSearch.toLowerCase())
+      )
+    : repos;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -154,12 +199,67 @@ export function ProjectForm({ open, onOpenChange, project }: ProjectFormProps) {
           </div>
           <div className="space-y-2">
             <Label className="text-zinc-400">GitHub Repository</Label>
-            <Input
-              value={repoUrl}
-              onChange={(e) => setRepoUrl(e.target.value)}
-              placeholder="https://github.com/you/repo"
-              className="bg-white/[0.04] border-white/10 text-white placeholder:text-zinc-600"
-            />
+            {hasGitHub && !isEdit && repos.length > 0 ? (
+              <div className="space-y-2">
+                <Input
+                  value={repoSearch}
+                  onChange={(e) => setRepoSearch(e.target.value)}
+                  placeholder="Search your repos..."
+                  className="bg-white/[0.04] border-white/10 text-white placeholder:text-zinc-600"
+                />
+                {(repoSearch || !repoUrl) && (
+                  <div className="max-h-36 overflow-y-auto rounded-md border border-white/10 bg-white/[0.02]">
+                    {filteredRepos.length === 0 ? (
+                      <p className="text-zinc-500 text-sm p-2">No repos found</p>
+                    ) : (
+                      filteredRepos.slice(0, 20).map((repo) => (
+                        <button
+                          key={repo.fullName}
+                          type="button"
+                          onClick={() => selectRepo(repo)}
+                          className={`w-full text-left px-3 py-2 text-sm hover:bg-white/[0.06] transition-colors flex items-center justify-between gap-2 ${
+                            repoUrl === repo.url
+                              ? "bg-purple-500/10 text-purple-300"
+                              : "text-zinc-300"
+                          }`}
+                        >
+                          <span className="truncate">{repo.fullName}</span>
+                          {repo.private && (
+                            <span className="text-[10px] uppercase tracking-wider text-zinc-500 border border-zinc-700 rounded px-1.5 py-0.5 shrink-0">
+                              Private
+                            </span>
+                          )}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+                {repoUrl && !repoSearch && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-purple-300 truncate flex-1">{repoUrl}</span>
+                    <button
+                      type="button"
+                      onClick={() => { setRepoUrl(""); setName(""); setDescription(""); }}
+                      className="text-xs text-zinc-500 hover:text-zinc-300"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <>
+                <Input
+                  value={repoUrl}
+                  onChange={(e) => setRepoUrl(e.target.value)}
+                  placeholder="https://github.com/you/repo"
+                  className="bg-white/[0.04] border-white/10 text-white placeholder:text-zinc-600"
+                />
+                {hasGitHub && !isEdit && reposLoading && (
+                  <p className="text-xs text-zinc-500">Loading your repos...</p>
+                )}
+              </>
+            )}
           </div>
           <div className="flex justify-end gap-3 pt-2">
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="text-zinc-400 hover:text-white">
