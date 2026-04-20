@@ -26,6 +26,7 @@ interface GitHubRepo {
   name: string;
   owner: string;
   url: string;
+  homepage: string | null;
   description: string | null;
   private: boolean;
   updatedAt: string;
@@ -97,6 +98,7 @@ export function ProjectForm({ open, onOpenChange, project }: ProjectFormProps) {
     setRepoUrl(repo.url);
     if (!name.trim()) setName(repo.name);
     if (!description && repo.description) setDescription(repo.description);
+    if (!url && repo.homepage) setUrl(repo.homepage);
     setRepoSearch("");
   }
 

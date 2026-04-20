@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -39,16 +39,36 @@ interface GitHubSectionProps {
 export function GitHubSection({ projectId, repoUrl, repoOwner, repoName, initialCache }: GitHubSectionProps) {
   const [cache, setCache] = useState(initialCache);
   const [syncing, setSyncing] = useState(false);
+  const [autoSync, setAutoSync] = useState(!!initialCache);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  async function handleSync() {
-    setSyncing(true);
+  const doSync = useCallback(async () => {
     const res = await fetch(`/api/projects/${projectId}/github/sync`, { method: "POST" });
     if (res.ok) {
       const data = await res.json();
       setCache(data);
     }
+  }, [projectId]);
+
+  async function handleSync() {
+    setSyncing(true);
+    await doSync();
+    setAutoSync(true);
     setSyncing(false);
   }
+
+  // Auto-sync every 5 minutes once enabled
+  useEffect(() => {
+    if (!autoSync || !repoOwner || !repoName) return;
+
+    intervalRef.current = setInterval(() => {
+      doSync();
+    }, 5 * 60 * 1000);
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [autoSync, repoOwner, repoName, doSync]);
 
   if (!repoOwner || !repoName) {
     return (

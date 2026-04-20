@@ -20,6 +20,7 @@ export async function GET() {
     name: r.name,
     owner: r.owner.login,
     url: r.html_url,
+    homepage: r.homepage || null,
     description: r.description,
     private: r.private,
     updatedAt: r.updated_at,
