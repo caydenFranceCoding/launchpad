@@ -69,7 +69,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white">Dashboard</h1>
           <p className="text-sm text-zinc-500 mt-1">
@@ -86,7 +86,7 @@ export default function DashboardPage() {
 
       {/* Filters */}
       {projects.length > 0 && (
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {filterOptions.map((f) => (
             <button
               key={f.value}
