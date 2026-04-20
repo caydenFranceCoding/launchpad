@@ -22,13 +22,15 @@ export async function PATCH(
   const parsed = metricUpdateSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
-  const result = await prisma.metric.updateMany({
+  const metric = await prisma.metric.findFirst({
     where: { id: metricId, projectId },
+  });
+  if (!metric) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  const updated = await prisma.metric.update({
+    where: { id: metricId },
     data: parsed.data,
   });
-  if (result.count === 0) return NextResponse.json({ error: "Not found" }, { status: 404 });
-
-  const updated = await prisma.metric.findUnique({ where: { id: metricId } });
   return NextResponse.json(updated);
 }
 
@@ -46,8 +48,12 @@ export async function DELETE(
   });
   if (!project) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const result = await prisma.metric.deleteMany({ where: { id: metricId, projectId } });
-  if (result.count === 0) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const metric = await prisma.metric.findFirst({
+    where: { id: metricId, projectId },
+  });
+  if (!metric) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  await prisma.metric.delete({ where: { id: metricId } });
 
   return NextResponse.json({ success: true });
 }

@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { projectCreateSchema } from "@/lib/validators";
 import { parseGitHubUrl } from "@/lib/github";
+import { logActivity } from "@/lib/activity";
 import { NextResponse } from "next/server";
 
 export async function GET() {
@@ -50,5 +51,6 @@ export async function POST(req: Request) {
     },
   });
 
+  await logActivity(project.id, "PROJECT_CREATED", `Created project "${project.name}"`);
   return NextResponse.json(project, { status: 201 });
 }

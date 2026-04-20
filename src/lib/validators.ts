@@ -6,7 +6,7 @@ export const projectCreateSchema = z.object({
   status: z.enum(["IDEA", "PLANNING", "IN_PROGRESS", "PAUSED", "SHIPPED", "ARCHIVED"]).optional(),
   url: z.string().url().optional().or(z.literal("")),
   repoUrl: z.string().url().optional().or(z.literal("")),
-  color: z.string().optional(),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
 });
 
 export const projectUpdateSchema = projectCreateSchema.partial().extend({
@@ -30,7 +30,7 @@ export const taskUpdateSchema = taskCreateSchema.partial().extend({
 export const metricCreateSchema = z.object({
   name: z.string().min(1).max(100),
   unit: z.string().max(20).optional(),
-  color: z.string().optional(),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
 });
 
 export const metricUpdateSchema = metricCreateSchema.partial();

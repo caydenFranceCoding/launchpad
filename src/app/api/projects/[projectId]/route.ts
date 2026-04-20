@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { projectUpdateSchema } from "@/lib/validators";
 import { parseGitHubUrl } from "@/lib/github";
+import { logActivity } from "@/lib/activity";
 import { NextResponse } from "next/server";
 
 export async function GET(req: Request, { params }: { params: Promise<{ projectId: string }> }) {
@@ -49,14 +50,27 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ projec
     data.startedAt = new Date();
   }
 
-  const project = await prisma.project.updateMany({
+  const existing = await prisma.project.findFirst({
     where: { id: projectId, userId: session.user.id },
-    data: data as Parameters<typeof prisma.project.updateMany>[0]["data"],
+  });
+  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  const updated = await prisma.project.update({
+    where: { id: projectId },
+    data,
   });
 
-  if (project.count === 0) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (data.status && data.status !== existing.status) {
+    const statusLabels: Record<string, string> = {
+      IDEA: "Idea", PLANNING: "Planning", IN_PROGRESS: "In Progress",
+      PAUSED: "Paused", SHIPPED: "Shipped", ARCHIVED: "Archived",
+    };
+    await logActivity(projectId, "PROJECT_STATUS_CHANGED",
+      `Status changed to ${statusLabels[data.status as string] ?? data.status}`,
+      { from: existing.status, to: data.status }
+    );
+  }
 
-  const updated = await prisma.project.findUnique({ where: { id: projectId } });
   return NextResponse.json(updated);
 }
 

@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { taskUpdateSchema } from "@/lib/validators";
+import { logActivity } from "@/lib/activity";
 import { NextResponse } from "next/server";
 
 async function verifyProjectOwnership(projectId: string, userId: string) {
@@ -50,14 +51,24 @@ export async function PATCH(
     data.completedAt = null;
   }
 
-  const task = await prisma.task.updateMany({
+  const existing = await prisma.task.findFirst({
     where: { id: taskId, projectId },
-    data: data as Parameters<typeof prisma.task.updateMany>[0]["data"],
+  });
+  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  await prisma.task.update({
+    where: { id: taskId },
+    data,
   });
 
-  if (task.count === 0) return NextResponse.json({ error: "Not found" }, { status: 404 });
-
   await updateProjectProgress(projectId);
+
+  if (data.status === "DONE" && existing.status !== "DONE") {
+    await logActivity(projectId, "TASK_COMPLETED", `Completed task "${existing.title}"`);
+  } else if (data.status && data.status !== "DONE" && existing.status === "DONE") {
+    await logActivity(projectId, "TASK_REOPENED", `Reopened task "${existing.title}"`);
+  }
+
   const updated = await prisma.task.findUnique({ where: { id: taskId } });
   return NextResponse.json(updated);
 }

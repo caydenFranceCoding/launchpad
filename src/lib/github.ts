@@ -7,7 +7,11 @@ export function createGitHubClient(accessToken: string) {
 export function parseGitHubUrl(url: string): { owner: string; repo: string } | null {
   const match = url.match(/github\.com\/([^/]+)\/([^/]+)/);
   if (!match) return null;
-  return { owner: match[1], repo: match[2].replace(/\.git$/, "") };
+  const owner = match[1];
+  const repo = match[2].replace(/\.git$/, "");
+  const validName = /^[a-zA-Z0-9._-]+$/;
+  if (!validName.test(owner) || !validName.test(repo)) return null;
+  return { owner, repo };
 }
 
 export async function fetchRepoStats(octokit: Octokit, owner: string, repo: string) {

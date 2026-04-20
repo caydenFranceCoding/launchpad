@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { taskCreateSchema } from "@/lib/validators";
+import { logActivity } from "@/lib/activity";
 import { NextResponse } from "next/server";
 
 async function verifyProjectOwnership(projectId: string, userId: string) {
@@ -70,5 +71,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ project
   });
 
   await updateProjectProgress(projectId);
+  await logActivity(projectId, "TASK_CREATED", `Added task "${task.title}"`);
   return NextResponse.json(task, { status: 201 });
 }

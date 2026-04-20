@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { datapointCreateSchema } from "@/lib/validators";
+import { logActivity } from "@/lib/activity";
 import { NextResponse } from "next/server";
 
 export async function GET(
@@ -49,6 +50,14 @@ export async function POST(
     update: { value: parsed.data.value },
     create: { metricId, value: parsed.data.value, date: new Date(parsed.data.date) },
   });
+
+  const metric = await prisma.metric.findUnique({ where: { id: metricId }, select: { name: true, unit: true } });
+  if (metric) {
+    await logActivity(projectId, "METRIC_RECORDED",
+      `Recorded ${metric.name}: ${parsed.data.value}${metric.unit ? ` ${metric.unit}` : ""}`,
+      { metricName: metric.name, value: parsed.data.value }
+    );
+  }
 
   return NextResponse.json(datapoint, { status: 201 });
 }
