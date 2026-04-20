@@ -14,7 +14,7 @@ export function HyperspaceArrival({
   const [phase, setPhase] = useState<
     "idle" | "covering" | "revealing" | "done"
   >("idle");
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => {
     const arrived = sessionStorage.getItem("hyperspace-arrival");
